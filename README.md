@@ -571,3 +571,9 @@ MIT License
 GitHub: https://github.com/taha8478
 
 PCR is an experimental serverless peer-to-peer communication project focused on direct WebRTC networking, minimal infrastructure, and an inspectable client-side architecture.
+
+## AI-Assisted Development
+
+PCR was developed with the assistance of AI tools. AI was used throughout the development process for code generation, debugging, architectural discussions, security reviews, and iterative improvements.
+
+The final architecture, implementation decisions, testing, and project direction were reviewed and guided by the project author.
