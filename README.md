@@ -1,128 +1,101 @@
-# PCR
+# PCR — Private Chat Room
 
-**Private Chat Room — a serverless, peer-to-peer chat application built with WebRTC Direct Mesh.**
+**A browser-based, serverless chat room built around WebRTC Direct Mesh.**
 
-PCR is a self-contained, IRC-style private chat client that runs entirely in the browser. It uses WebRTC DataChannels for direct peer-to-peer communication, manual signaling for bootstrapping, public STUN for NAT discovery, and application-level cryptography for protected room and peer-to-peer messaging.
+PCR is a single-file HTML application for creating small private chat rooms without running a dedicated chat server. Participants establish WebRTC connections using manually exchanged signaling codes, then communicate directly whenever their networks permit it.
 
-The project intentionally does **not** use a chat server, WebSocket backend, database, TURN relay, Cloudflare Worker, or other permanent application infrastructure.
+> PCR is an experimental project. It is not a professionally audited secure messenger, and direct connectivity is not guaranteed on every network.
 
-## Highlights
+## Features
 
-- Direct WebRTC mesh networking
-- Serverless client architecture
-- IRC-style private room experience
-- Public room chat
-- Peer-to-peer direct messages
-- Peer-to-peer file transfer
-- Voice messages
-- Typing indicators
-- Message replies
-- Emoji reactions
-- User presence, status/bio, away state, operator and voice roles
-- Room password support
-- Signed Host Codes and Host Answers
-- Persistent host identity
-- Host identity fingerprints
-- ECDH-based key agreement
-- AES-256-GCM application-level encryption
-- DTLS-encrypted WebRTC transport
+- Browser-based, single-file deployment (`PCR.html`)
+- Host and Peer roles with manual Host Code → Peer Offer → Host Answer signaling
 - QR-code display and scanning for signaling codes
-- Built-in `/status`, `/bootstrap`, and `/security` diagnostics
-- File integrity verification using SHA-256
-- File-transfer backpressure handling
-- Bounded reconnect and replay protection
-- Responsive desktop and mobile UI
-- Single-file deployment
+- Direct-mesh room chat and peer-to-peer direct messages
+- Voice messages (browser microphone permission required)
+- File sharing with progress feedback and SHA-256 integrity verification
+- Replies, emoji reactions, typing indicators, message search, and message export
+- Nicknames, bios, away state, user lists, and connection-state indicators
+- Room passwords and room topic
+- IRC-inspired commands and moderation controls
+- Persistent Host identity and Host fingerprint verification
+- WebRTC DTLS transport encryption and application-level encryption
+- Configurable ICE servers, including custom STUN and TURN entries
+- Intranet mode for attempting connections on a local network without the default public STUN servers
+- `/status`, `/bootstrap`, `/security`, and `/network` diagnostics
+- Responsive desktop and mobile interface
+- No build system or required backend
 
-## How PCR Works
+## Architecture
 
-PCR separates room coordination from application data.
+PCR separates room coordination (the **control plane**) from normal application traffic (the **data plane**).
 
-The Host is authoritative for the **control plane**:
-
-- signaling
-- room membership
-- participant registry
-- identity
-- roles
-- moderation
-- topic
-- join/leave state
-
-Normal application traffic belongs to the **data plane**:
-
-- chat
-- direct messages
-- files
-- voice
-- typing indicators
-- reactions
-- acknowledgements
-
-These data-plane messages are sent directly between participants over the WebRTC mesh rather than being relayed through the Host. The implementation explicitly uses `DIRECT_MESH` as its network mode. fileciteturn1file2L202-L208
-
-Conceptually:
+The Host coordinates room membership, identity, roles, topic, moderation, and initial signaling. Chat messages, direct messages, files, voice messages, typing indicators, and reactions are designed to travel directly between participants over WebRTC DataChannels rather than through a central chat server.
 
 ```text
-                    ┌─────────────┐
-                    │    HOST     │
-                    │ Control     │
-                    │ Plane       │
-                    └──────┬──────┘
-                           │
-                    Bootstrap / Signaling
-                           │
-              ┌────────────┴────────────┐
-              │                         │
-         ┌────▼────┐               ┌────▼────┐
-         │  Peer A │◄─────────────►│  Peer B │
-         └────┬────┘    WebRTC     └────┬────┘
-              │       Direct Mesh       │
-              └──────────┬──────────────┘
-                         │
-                    ┌────▼────┐
-                    │  Peer C │
-                    └─────────┘
+                  HOST
+          Room coordination
+                  |
+       Manual signaling exchange
+                  |
+        +---------+---------+
+        |                   |
+      Peer A  <----------> Peer B
+        |       WebRTC      |
+        +---------+---------+
+                  |
+                Peer C
 ```
 
-The Host still has a direct bootstrap/control connection with each participant, but it is not used as a normal data-plane hop.
+A full mesh requires a direct connection between each pair of participants. This is best suited to small rooms, not large public communities.
 
-## Signaling
+## Getting Started
 
-PCR does not require a signaling server.
+### Requirements
 
-Instead, the initial WebRTC setup is performed by exchanging compact signaling codes manually.
+- A modern browser with WebRTC support
+- A microphone and permission to use it for voice messages
+- A way to exchange Host Codes, Peer Offers, and Host Answers privately
+- Network conditions that allow the peers to establish direct WebRTC connections
 
-### Host
+### Run locally
 
-1. Enter a nickname and optionally a bio.
-2. Create a room as Host.
-3. Share the generated **Host Code**.
-4. Receive a **Peer Offer** from each participant.
-5. Verify and add each peer.
-6. Send the generated **Host Answer** back to that participant.
+Clone the repository:
 
-### Peer
+```bash
+git clone https://github.com/taha8478/PCR.git
+cd PCR
+```
 
-1. Enter a nickname.
-2. Select **Join as Peer**.
-3. Paste or scan the Host Code.
-4. Verify the Host Code.
-5. Generate a **Peer Offer**.
-6. Send the Peer Offer to the Host.
-7. Receive the Host Answer.
-8. Paste or scan the Host Answer.
-9. Apply it and establish the WebRTC connection.
+If the HTML file is named `PCR.html`, start a local static server from the directory:
 
-QR display and scanning are included for Host Codes, Peer Offers, and Host Answers.
+```bash
+python -m http.server 8000
+```
 
-The Host Answer is signature-checked against the Host identity pinned during the Host Code verification step, helping detect a substituted answer during manual signaling. fileciteturn1file7L514-L548
+Open `http://localhost:8000/PCR.html` in your browser. You can also open or host the HTML file directly, although browser permissions and WebRTC behavior can vary by context. For microphone access and reliable browser behavior, use `localhost` or HTTPS.
 
-## Networking
+### Create a room
 
-PCR uses WebRTC `RTCPeerConnection` and `RTCDataChannel`.
+1. Open PCR on the device that will host the room.
+2. Enter a nickname and optional bio.
+3. Create a room as **Host**.
+4. Share the generated **Host Code** with a participant.
+5. The participant joins as **Peer**, enters or scans the Host Code, and generates a **Peer Offer**.
+6. Send that Peer Offer to the Host.
+7. The Host processes the offer and returns a **Host Answer**.
+8. The Peer enters or scans the Host Answer and applies it to complete the connection.
+9. Repeat the process for additional participants.
 
-Google's public STUN servers are configured by default:
+PCR uses manual signaling, so users need an external way to exchange these codes. Treat codes as connection setup data and verify the Host identity/fingerprint when prompted. Avoid posting room codes publicly.
+
+## Networking: STUN, TURN, and Intranet Mode
+
+PCR uses WebRTC ICE to negotiate a path between participants.
+
+### Default behavior
+
+Outside Intranet Mode, PCR includes Google's public STUN servers by default:
 
 ```text
 stun:stun.l.google.com:19302
@@ -132,256 +105,154 @@ stun:stun3.l.google.com:19302
 stun:stun4.l.google.com:19302
 ```
 
-A custom STUN server can also be supplied by the user. The application sends the configured STUN servers together as ICE servers and lets ICE determine which candidate pair works. fileciteturn1file2L145-L187
+STUN helps a browser discover network candidates; it does not relay chat messages or files.
 
-### STUN vs TURN
+### Custom ICE servers
 
-PCR deliberately uses **STUN without TURN**.
+PCR supports custom STUN/TURN entries through its network configuration. Entries are comma-separated. For TURN, provide the URL, username, and credential in this format:
 
-STUN helps peers discover reachable network candidates. It does not carry normal chat messages or file contents.
+```text
+stun:stun.example.org:3478
+turn:turn.example.org:3478|USERNAME|PASSWORD
+turns:turn.example.org:5349|USERNAME|PASSWORD
+```
 
-There is no TURN relay fallback in the current design. Therefore, a direct connection is not guaranteed on every network. Restrictive NATs, firewalls, corporate networks, or mobile carrier networks can prevent two participants from establishing a direct path.
+Use credentials from a TURN service you trust. Do not share a README or screenshot containing live TURN credentials. Custom server support does not mean a server is bundled with PCR.
 
-This is an intentional architectural trade-off rather than an implementation oversight.
+### Intranet Mode
+
+Intranet Mode omits the default public STUN list and shortens the ICE candidate-gathering timeout. It is intended for local-network testing and may help when public internet services are unavailable. It does not guarantee connectivity: browser privacy behavior, Wi-Fi client isolation, firewalls, VPNs, and network configuration can still prevent peers from connecting.
+
+### Important connectivity limitation
+
+PCR attempts direct peer-to-peer connections. If no usable ICE candidate pair can be established, the connection fails. A configured TURN server can provide a relay path; without a working TURN service, some NATs, firewalls, mobile networks, or restricted environments will prevent a direct connection.
 
 ## Security Model
 
-PCR uses several layers of protection.
+PCR uses multiple layers of protection, but its trust model has important limits.
 
-### WebRTC transport encryption
+### Transport encryption
 
-WebRTC DataChannels are protected by DTLS as part of the WebRTC transport.
+WebRTC DataChannels use DTLS for transport encryption.
 
-### Room-wide application encryption
+### Room-wide messages
 
-Room-wide chat and `/me` messages use a room key generated by the Host.
+Room-wide messages use application-level cryptographic protection. The Host creates and holds the room-wide key, so the Host can read room-wide messages as a member of the room. PCR should therefore not be treated as a group messenger where the Host is unable to read room messages.
 
-The application derives cryptographic material using:
+### Direct messages
 
-- ECDH P-256
-- HKDF-SHA-256
-- AES-256-GCM
+Direct messages are intended to use a key derived for the two participating peers and to travel over their direct mesh connection.
 
-The implementation defines a dedicated E2EE domain and derives AES-GCM keys from ECDH shared secrets through HKDF. fileciteturn1file6L440-L496
+### Host identity and signaling
 
-Because the Host generates and holds the room-wide key, the Host is able to read room-wide messages as a legitimate member of the room. This is important: PCR should **not** be described as a system where the Host is cryptographically blind to all room messages.
+PCR maintains a Host identity and displays a fingerprint. Host Answers are checked against the Host identity accepted during Host Code verification. Check the fingerprint through a trusted channel when identity verification matters.
 
-### Peer-to-peer DMs
+### File integrity and input validation
 
-Direct messages between two peers use a pairwise ECDH-derived key.
+File transfers include SHA-256 integrity verification. The application also validates incoming message and transfer data. These measures reduce specific risks, but they do not replace an independent security audit.
 
-The Host is not the normal data-path hop for peer-to-peer DMs. The implementation describes these messages as encrypted for the two participating peers and sent over their direct mesh channel. fileciteturn1file0L49-L56
+### Security caveats
 
-### Host identity
+- PCR has not been represented as professionally audited security software.
+- The Host is trusted for room coordination and room-wide messages.
+- WebRTC may expose network metadata, including candidate information, to connection participants.
+- A compromised device or browser can expose messages before encryption or after decryption.
+- Manual signaling requires care: do not accept codes from untrusted sources.
+- Encryption does not make users anonymous.
 
-The Host has a persistent ECDSA identity and a room-specific identity fingerprint.
+Use PCR for experimentation and small private rooms, not as a substitute for a professionally audited messenger when high-assurance security is required.
 
-Peers pin the Host public identity while processing the Host Code and use it to verify subsequent Host Answers.
+## File and Voice Sharing
 
-This provides protection against silently replacing the Host Answer during the manual signaling process.
+- Maximum file size: **4 MB per file**
+- File data is split into chunks and sent through WebRTC DataChannels
+- The sender applies backpressure handling to avoid endlessly filling a recipient's send buffer
+- Up to four concurrent transfers are allowed by the current implementation
+- The receiver verifies the completed file's SHA-256 hash
+- Voice recording depends on browser support and microphone permission
 
-### Replay protection
+Transfer success depends on the peer connection remaining usable. Large or numerous transfers can consume memory and bandwidth on participant devices.
 
-Incoming message IDs are handled through bounded replay caches. This prevents repeated packets from being processed indefinitely while keeping the cache size bounded.
+## Commands
 
-### Input validation
+Enter commands in the chat input. Use `/help` in the running application for the in-app command list and syntax. Commands currently recognized by the client include:
 
-Data received over WebRTC is treated as untrusted input.
+| Command | Purpose |
+|---|---|
+| `/help` | Show available commands |
+| `/nick` | Change nickname |
+| `/bio` | Set or update bio |
+| `/users`, `/names`, `/who` | Inspect room participants |
+| `/whois` | View participant details |
+| `/msg`, `/query` | Send a direct message |
+| `/me` | Send an action message |
+| `/away` | Set away status |
+| `/ignore`, `/unignore` | Ignore or restore messages from a user |
+| `/mute`, `/unmute` | Mute or unmute a user locally |
+| `/topic` | View or manage the room topic, subject to permissions |
+| `/invite`, `/join`, `/part`, `/leave`, `/room` | Room-related actions |
+| `/kick`, `/ban`, `/unban` | Moderation actions, subject to permissions |
+| `/op`, `/deop`, `/voice`, `/devoice` | Manage room roles, subject to permissions |
+| `/status` | Show connection and room status |
+| `/bootstrap` | Inspect Host/Peer setup diagnostics |
+| `/security` | Show security-model information |
+| `/network` | Inspect network configuration/status |
+| `/version`, `/time`, `/motd`, `/ping` | Information and diagnostic commands |
+| `/search` | Search chat history available in the current client |
+| `/export` | Export available chat history |
+| `/clear` | Clear the visible chat |
+| `/reload`, `/cycle`, `/quit` | Client/room lifecycle actions |
 
-PCR validates packet shapes, message IDs, nicknames, file metadata, chunks, MIME types, filenames, transfer IDs, and cryptographic hashes before using them.
+Exact behavior can depend on the user's role and the room state. `/help` in the current build is the source of truth for command usage.
 
-## File Transfer
+## Troubleshooting
 
-PCR supports direct file transfer over WebRTC DataChannels.
+### The Peer does not connect after applying the Host Answer
 
-The current client limits individual files to **4 MB**. File data is split into chunks and sent over the appropriate direct channel.
+1. Confirm that the Host processed the correct Peer Offer and returned the matching Host Answer.
+2. Make sure the Peer applied the entire Host Answer without truncation or modification.
+3. Inspect `/bootstrap` on both sides for the stage where setup stopped.
+4. Inspect `/status` and `/network` for ICE, peer-connection, and DataChannel states.
+5. Test without a VPN, then test with both devices on different networks.
+6. If direct ICE connectivity fails, try a trusted, correctly configured TURN server.
 
-The implementation uses:
+### It works on the same Wi-Fi but not across networks
 
-- 4 MB maximum file size
-- approximately 12 KB binary chunks
-- up to 4 concurrent transfers
-- per-channel backpressure
-- transfer timeouts
-- sender identity binding
-- SHA-256 integrity verification
+Different networks can have stricter NATs and firewalls. STUN alone cannot guarantee a direct path. A TURN server may be needed as a relay fallback.
 
-The file-transfer implementation explicitly checks the sender identity associated with a transfer and rejects chunks or completion messages from a different participant. fileciteturn1file1L76-L102
+### Intranet Mode does not connect
 
-After all chunks arrive, PCR reconstructs the file and verifies its SHA-256 hash before rendering or offering the file to the user. A mismatch causes the file to be rejected. fileciteturn1file3L241-L271
+Check that both devices are on a network that allows device-to-device traffic. Some guest Wi-Fi networks and hotspots isolate clients. Ensure firewalls permit browser WebRTC traffic. Intranet Mode does not bypass network isolation.
 
-### Per-recipient delivery
+### Voice recording does not work
 
-File transfers use independent delivery lanes for recipients.
+Check browser support, microphone permission, and whether the page is running in a context where microphone access is allowed.
 
-A slow connection therefore does not have to block every other recipient. Each channel respects its own DataChannel backpressure state. fileciteturn1file5L362-L423
+### File transfer fails
 
-## Voice Messages
-
-PCR also supports recording and sending voice messages through the same peer-to-peer data architecture.
-
-Voice transfers are handled as application data rather than requiring a dedicated voice server.
-
-## Chat Features
-
-The interface provides an IRC-inspired experience while using modern browser UI.
-
-Supported features include:
-
-- public room messages
-- direct messages
-- replies
-- emoji reactions
-- typing indicators
-- voice messages
-- file attachments
-- user bios
-- away status
-- operator/voice roles
-- message search
-- mute controls
-- connection state indicators
-
-Participants also have visible mesh connection state, distinguishing direct connectivity from merely being present in the room.
-
-## Diagnostics
-
-PCR includes diagnostics designed specifically for WebRTC troubleshooting.
-
-### `/status`
-
-Shows current room, participant, connection, mesh, and reconnect information.
-
-It can show:
-
-- participant IDs
-- mesh connection state
-- DataChannel state
-- RTCPeerConnection state
-- last activity
-- reconnect attempts
-- queued mesh signals
-
-It also explicitly reports that no TURN relay is being used. fileciteturn1file0L10-L20
-
-### `/bootstrap`
-
-Displays the Host/Peer bootstrap diagnostic trail.
-
-This helps identify whether a failure happened during:
-
-- Host Code processing
-- offer generation
-- offer acceptance
-- signature verification
-- ICE connectivity
-- DataChannel establishment
-- room initialization
-- roster/key delivery
-
-The diagnostic trail is intentionally restricted to state and diagnostic information rather than secrets. fileciteturn1file0L25-L45
-
-### `/security`
-
-Displays the application's security/trust model so that users can inspect how the current build actually handles:
-
-- transport encryption
-- room encryption
-- peer-to-peer DM encryption
-- Host visibility
-- network architecture
-
-The goal is to make security behavior explicit rather than relying on vague "private" labels. fileciteturn1file0L49-L56
-
-## Reliability
-
-WebRTC connections can disappear because of network changes, NAT behavior, device sleep, browser state, or firewall changes.
-
-PCR therefore tracks mesh connection lifecycle states:
-
-```text
-new
-  ↓
-signaling
-  ↓
-connecting
-  ↓
-connected
-  ↓
-disconnected / failed
-  ↓
-reconnect / close
-```
-
-Reconnect behavior is bounded rather than allowing unlimited attempts.
-
-Mesh signaling is also queued when the bootstrap connection is not ready yet, preventing early mesh negotiation messages from simply being discarded. fileciteturn1file2L202-L208
-
-## Room Passwords
-
-Hosts can optionally protect a room with a password.
-
-The password is not placed directly into the Host Code. Participants who join a protected room must provide the corresponding password during the join process.
-
-## Identity
-
-PCR maintains several forms of identity:
-
-- nickname
-- participant ID
-- Host identity
-- Host fingerprint
-- ECDH session keys
-- room cryptographic key
-
-The Host identity is particularly important for manual signaling because peers use it to verify that subsequent Host Answers correspond to the Host identity they originally accepted.
-
-## UI
-
-PCR intentionally uses a terminal-inspired visual style:
-
-- monospace typography
-- dark interface
-- compact status information
-- IRC-like room presentation
-- terminal-style command input
-- desktop window controls
-- responsive mobile layout
-
-The application can be minimized or maximized, and the layout adapts to smaller screens.
-
-## Deployment
-
-PCR is designed as a standalone HTML application.
-
-There is no build step and no required backend.
-
-Clone the repository:
-
-```bash
-git clone https://github.com/taha8478/PCR.git
-cd PCR
-```
-
-You can serve it locally with Python:
-
-```bash
-python -m http.server 8000
-```
-
-Then open:
-
-```text
-http://localhost:8000
-```
-
-You can also deploy the HTML file to a static hosting service.
-
-Because the application does not require a permanent application backend, static hosting is sufficient for distributing the client.
+Confirm the file is within the 4 MB limit, the peer remains connected, and the browser has enough available memory. Check the transfer status and connection diagnostics.
+
+## Testing Checklist
+
+Test with at least two browser instances; then test on separate physical devices and networks.
+
+- [ ] Create a room and generate a Host Code
+- [ ] Join as a Peer and generate a Peer Offer
+- [ ] Process the Peer Offer and apply the Host Answer
+- [ ] Verify Host identity/fingerprint handling
+- [ ] Exchange public messages
+- [ ] Send direct messages
+- [ ] Test replies, reactions, typing indicators, and search
+- [ ] Record and send a voice message
+- [ ] Send a file and verify integrity
+- [ ] Test multiple participants and simultaneous transfers
+- [ ] Test disconnect/reconnect behavior
+- [ ] Review `/status`, `/bootstrap`, `/security`, and `/network`
+- [ ] Test normal mode, Intranet Mode, and a trusted custom TURN configuration where available
+
+Testing all participants on one computer or the same LAN does not reproduce the NAT and firewall conditions found on real-world networks.
 
 ## Project Structure
-
-The core application is intentionally self-contained:
 
 ```text
 PCR/
@@ -389,191 +260,48 @@ PCR/
 └── README.md
 ```
 
-The current application contains the UI, networking layer, cryptographic logic, signaling flow, file-transfer implementation, diagnostics, and client state in the HTML document.
+The core client is contained in `PCR.html`; it includes the interface, signaling flow, WebRTC networking, cryptographic logic, file-transfer implementation, and diagnostics. There is no build step.
+
+## Technical Reference
+
+| Setting | Current value |
+|---|---|
+| Application protocol version | `3` |
+| Network mode | `DIRECT_MESH` |
+| Maximum message length | `2,000` characters |
+| Maximum file size | `4 MB` |
+| Maximum concurrent file transfers | `4` |
+| Default public STUN | Google STUN servers |
+| TURN | Optional custom configuration; no TURN service is bundled |
+
+Protocol versions describe the current implementation and may change between releases. Participants should use compatible versions of PCR.
 
 ## Limitations
 
-PCR is deliberately decentralized, but that architecture introduces trade-offs.
+- **Direct connectivity is not guaranteed.** Network conditions may prevent a direct path.
+- **Small-room architecture.** Full mesh connection count grows approximately as `N × (N - 1) / 2`.
+- **Manual signaling.** Users must exchange setup codes out of band.
+- **Host trust.** The Host controls room coordination and can read room-wide messages.
+- **No built-in offline delivery.** A disconnected participant cannot receive messages while offline.
+- **No bundled TURN service.** Users must configure their own service if relay fallback is needed.
+- **Experimental software.** The implementation has not been presented as independently audited security software.
 
-### Direct connectivity is not guaranteed
+## Privacy
 
-Without TURN, some peers simply cannot establish a direct WebRTC path.
+Serverless does not mean anonymous. Participants and network infrastructure may learn connection metadata, and WebRTC candidate gathering can reveal network information. PCR does not send normal chat traffic through a central chat server, but peer-to-peer communication creates direct network relationships between participants.
 
-### Mesh scalability
-
-A full mesh requires connections between participants.
-
-For `N` participants, a complete mesh can require approximately:
-
-```text
-N × (N - 1) / 2
-```
-
-peer-to-peer connections.
-
-This makes PCR more appropriate for small private rooms than very large communities.
-
-### Manual signaling
-
-The current signaling process requires exchanging codes between users.
-
-This removes the need for a signaling backend but makes the initial connection less convenient.
-
-### Host trust
-
-The Host controls the room's control plane and possesses the room-wide encryption key.
-
-Therefore, PCR's trust model is not equivalent to a fully decentralized, zero-trust group messenger.
-
-### No offline messaging
-
-A disconnected participant cannot receive a message through a connection that does not exist.
-
-Persistent offline delivery would require additional storage and synchronization infrastructure.
-
-### File size
-
-The current maximum file size is 4 MB.
-
-This is intentional because file data is carried directly over WebRTC DataChannels and the application is designed to keep memory and transfer state bounded. fileciteturn1file4L190-L200
-
-## Privacy Considerations
-
-"Serverless" does not mean "anonymous."
-
-WebRTC can involve ICE candidates containing network information, and network infrastructure can still observe connection metadata.
-
-PCR does not route normal application data through a central chat server, but users should still consider:
-
-- IP/network exposure
-- browser privacy
-- local network visibility
-- signaling-code handling
-- Host trust
-- endpoint security
-- device compromise
-
-The absence of TURN also means PCR does not hide peer-to-peer network relationships behind a relay.
-
-## Threat Model
-
-PCR is primarily designed to reduce dependence on centralized application infrastructure.
-
-It is **not** presented as a replacement for professionally audited secure messaging software.
-
-The current design provides meaningful protections against several classes of accidental or malicious behavior, including:
-
-- substituted Host Answers
-- malformed network packets
-- replayed message IDs
-- unauthorized file chunks
-- corrupted file transfers
-- unsafe MIME rendering
-- unbounded transfer state
-
-However, the Host remains trusted for room-wide chat and control-plane operations.
-
-If you need protection against a malicious Host, PCR's current room-wide encryption model is not sufficient.
-
-## Technical Details
-
-Current protocol-related constants include:
-
-```text
-Application protocol version: 3
-Network mode: DIRECT_MESH
-Network protocol version: 1
-Maximum message length: 2000 characters
-Maximum file size: 4 MB
-Maximum concurrent transfers: 4
-File-transfer timeout: 60 seconds
-Replay cache: 500 IDs
-```
-
-The implementation also uses bounded DataChannel buffering thresholds to prevent a fast sender from indefinitely filling a slow recipient's browser-side queue. fileciteturn1file4L190-L200
-
-## Testing
-
-For basic testing, use multiple browser instances or devices.
-
-Recommended test matrix:
-
-```text
-Browser A ─ Host
-Browser B ─ Peer
-Browser C ─ Peer
-```
-
-Test:
-
-- room creation
-- Host Code generation
-- Peer Offer generation
-- Host Answer generation
-- signature verification
-- WebRTC connection
-- room initialization
-- public chat
-- peer-to-peer DM
-- replies
-- reactions
-- typing indicators
-- voice messages
-- file transfers
-- multiple simultaneous transfers
-- reconnect behavior
-- `/status`
-- `/bootstrap`
-- `/security`
-
-For realistic network testing, test devices on different networks. Testing every participant on the same machine or LAN can hide NAT, firewall, latency, and bandwidth problems.
-
-## Philosophy
-
-PCR follows a simple principle:
-
-> **A private chat room does not necessarily need a chat server.**
-
-Instead of building another centralized messaging backend, PCR uses browser-native WebRTC capabilities to create a direct communication mesh.
-
-The resulting architecture is intentionally small:
-
-```text
-                PCR
-                 │
-        ┌────────┴────────┐
-        │                 │
-   Control Plane      Data Plane
-        │                 │
-   Manual Signaling    WebRTC Mesh
-        │                 │
-        ▼                 ▼
-      Host          Peer ↔ Peer
-                        │
-              ┌─────────┼─────────┐
-              ▼         ▼         ▼
-             Chat      Files     Voice
-             DMs       Typing    Reactions
-```
-
-The Host coordinates the room, while participants communicate directly whenever the network permits it.
+Be thoughtful about who you invite, how you exchange signaling codes, and whether your network and device are suitable for your use case.
 
 ## License
 
-```text
-MIT License
-```
+The project README currently identifies the license as **MIT**. Ensure a matching `LICENSE` file is included in the repository before distributing the project under that license.
 
 ## Author
 
 **taha8478**
 
-GitHub: https://github.com/taha8478
-
-PCR is an experimental serverless peer-to-peer communication project focused on direct WebRTC networking, minimal infrastructure, and an inspectable client-side architecture.
+- GitHub: <https://github.com/taha8478>
 
 ## AI-Assisted Development
 
-PCR was developed with the assistance of AI tools. AI was used throughout the development process for code generation, debugging, architectural discussions, security reviews, and iterative improvements.
-
-The final architecture, implementation decisions, testing, and project direction were reviewed and guided by the project author.
+PCR was developed with assistance from AI tools for code generation, debugging, architectural discussion, and iterative improvements. The project direction, implementation review, testing, and final decisions are guided by the author.
