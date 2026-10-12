@@ -12,7 +12,7 @@ html,body{height:100vh}
 @supports (height:100dvh){html,body{height:100dvh}}
 body{display:grid;place-items:center;padding:20px;overflow:hidden}
 
-.app{width:min(1120px,96vw);height:min(720px,90dvh);min-height:360px;background:var(--p);border:1px solid var(--b);border-radius:13px;box-shadow:0 28px 80px #000b;overflow:hidden;display:flex;flex-direction:column;max-width:100%}
+.app{width:min(1120px,96vw);height:min(720px,90dvh);min-height:360px;background:var(--p);border:1px solid var(--b);border-radius:13px;box-shadow:0 50px 120px -20px #000f,0 22px 50px -14px #000c,0 0 0 1px #ffffff14,0 0 140px #3d6bff26;overflow:hidden;display:flex;flex-direction:column;max-width:100%}
 
 .bar{height:43px;flex:0 0 43px;background:linear-gradient(#151a21,#10151b);border-bottom:1px solid var(--b);display:flex;align-items:center;padding:0 14px;position:relative}
 .dots{display:flex;gap:8px}.dot{width:12px;height:12px;border:0;border-radius:50%;cursor:pointer;padding:0}.red{background:#ff5f57}.yellow{background:#febc2e}.green{background:#28c840}
@@ -144,14 +144,24 @@ html,body{background:#021039 url("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQA
 /* ---- window states ---- */
 .app.minimized{position:fixed;left:auto;top:auto;right:max(14px,env(safe-area-inset-right));bottom:max(14px,env(safe-area-inset-bottom));width:min(300px,calc(100vw - 28px));height:43px;min-height:43px;border-radius:10px;cursor:pointer}
 .app.minimized .work,.app.minimized .status{display:none}
-.app.maximized{position:fixed;inset:0;top:auto;left:0;right:0;bottom:0;width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;border-radius:0;padding-top:env(safe-area-inset-top)}
+.app.maximized{box-shadow:none;position:fixed;inset:0;top:auto;left:0;right:0;bottom:0;width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;border-radius:0;padding-top:env(safe-area-inset-top)}
 
-/* ---- floating window (desktop) ---- */
+/* ---- floating window ---- */
+.bar{touch-action:none}
+.app.minimized .bar{cursor:grab}
+.app.dragging,.app.dragging .bar{cursor:grabbing!important}
+.app.dragging{user-select:none}
+.rz{display:none;position:absolute;z-index:50;touch-action:none}
 @media(min-width:761px){
-  .app.normal{position:fixed;resize:both;min-width:520px;min-height:360px;max-width:98vw;max-height:98dvh;box-shadow:0 30px 90px #000c,0 0 0 1px #ffffff12}
+  .app.normal{position:fixed;min-width:520px;min-height:360px;max-width:98vw;max-height:98dvh}
   .app.normal .bar{cursor:grab}
-  .app.dragging .bar{cursor:grabbing}
-  .app.dragging{user-select:none}
+  .app.normal .rz{display:block}
+  .rz.n,.rz.s{left:12px;right:12px;height:7px;cursor:ns-resize}
+  .rz.e,.rz.w{top:12px;bottom:12px;width:7px;cursor:ew-resize}
+  .rz.n{top:0}.rz.s{bottom:0}.rz.e{right:0}.rz.w{left:0}
+  .rz.ne,.rz.nw,.rz.se,.rz.sw{width:14px;height:14px}
+  .rz.ne{top:0;right:0;cursor:nesw-resize}.rz.sw{bottom:0;left:0;cursor:nesw-resize}
+  .rz.nw{top:0;left:0;cursor:nwse-resize}.rz.se{bottom:0;right:0;cursor:nwse-resize}
 }
 
 @media(max-width:760px){
@@ -172,6 +182,14 @@ html,body{background:#021039 url("data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQA
 </head>
 <body>
 <div class="app normal" id="app">
+  <div class="rz n" data-dir="n"></div>
+  <div class="rz s" data-dir="s"></div>
+  <div class="rz e" data-dir="e"></div>
+  <div class="rz w" data-dir="w"></div>
+  <div class="rz ne" data-dir="ne"></div>
+  <div class="rz nw" data-dir="nw"></div>
+  <div class="rz se" data-dir="se"></div>
+  <div class="rz sw" data-dir="sw"></div>
   <div class="bar" id="bar">
     <div class="dots">
       <button class="dot red" id="btnClose" title="Close / Leave"></button>
@@ -5284,56 +5302,84 @@ const QR = (function(){
 
   let winState="normal";
 
-  /* floating window: drag by the title bar, resize from the bottom-right corner */
-  let floatPos=null, floatSize=null;
-  const canFloat=()=>winState==="normal" && window.innerWidth>760;
+  /* floating window: drag by the title bar (also while minimized), resize from any edge/corner */
+  let floatPos=null, floatSize=null, miniPos=null, dragSuppress=false;
+  const isDesktop=()=>window.innerWidth>760;
+  const canResize=()=>winState==="normal" && isDesktop();
+  const canDrag=()=>winState==="minimized" || canResize();
+  const MIN_W=520, MIN_H=360;
 
   function clampFloat(){
-    const w=appEl.offsetWidth, h=appEl.offsetHeight;
+    const w=appEl.offsetWidth;
     floatPos.x=Math.min(Math.max(floatPos.x,100-w),window.innerWidth-100);
     floatPos.y=Math.min(Math.max(floatPos.y,0),window.innerHeight-43);
   }
+  function clampMini(){
+    const w=appEl.offsetWidth;
+    miniPos.x=Math.min(Math.max(miniPos.x,0),Math.max(0,window.innerWidth-w));
+    miniPos.y=Math.min(Math.max(miniPos.y,0),Math.max(0,window.innerHeight-43));
+  }
 
-  function applyFloat(){
-    if(!canFloat()){
-      appEl.style.left=appEl.style.top=appEl.style.width=appEl.style.height="";
+  function applyLayout(){
+    const st=appEl.style;
+    st.left=st.top=st.right=st.bottom=st.width=st.height="";
+    if(winState==="maximized") return;
+    if(winState==="minimized"){
+      if(miniPos){
+        clampMini();
+        st.left=miniPos.x+"px"; st.top=miniPos.y+"px";
+        st.right="auto"; st.bottom="auto";
+      }
       return;
     }
+    if(!isDesktop()) return;
     if(floatSize){
-      appEl.style.width=Math.min(floatSize.w,window.innerWidth*0.98)+"px";
-      appEl.style.height=Math.min(floatSize.h,window.innerHeight*0.98)+"px";
+      st.width=Math.min(floatSize.w,window.innerWidth*0.98)+"px";
+      st.height=Math.min(floatSize.h,window.innerHeight*0.98)+"px";
     }
     if(!floatPos){
       floatPos={x:(window.innerWidth-appEl.offsetWidth)/2,y:(window.innerHeight-appEl.offsetHeight)/2};
     }
     clampFloat();
-    appEl.style.left=floatPos.x+"px";
-    appEl.style.top=floatPos.y+"px";
+    st.left=floatPos.x+"px"; st.top=floatPos.y+"px";
   }
 
   function setWinState(state){
-    if(canFloat()) floatSize={w:appEl.offsetWidth,h:appEl.offsetHeight};
+    if(canResize()) floatSize={w:appEl.offsetWidth,h:appEl.offsetHeight};
     winState=state;
     appEl.classList.remove("normal","minimized","maximized");
     appEl.classList.add(state);
-    applyFloat();
+    applyLayout();
     if(state==="normal") input.focus();
   }
 
+  /* drag */
   barEl.addEventListener("pointerdown",e=>{
-    if(!canFloat() || e.button!==0 || e.target.closest("button")) return;
-    const sx=e.clientX, sy=e.clientY, ox=floatPos.x, oy=floatPos.y;
-    appEl.classList.add("dragging");
+    if(!canDrag() || e.button!==0 || e.target.closest("button")) return;
+    const mini=winState==="minimized";
+    if(mini && !miniPos){
+      const r=appEl.getBoundingClientRect();
+      miniPos={x:r.left,y:r.top};
+    }
+    const pos=mini?miniPos:floatPos;
+    const sx=e.clientX, sy=e.clientY, ox=pos.x, oy=pos.y;
+    let moved=false;
     barEl.setPointerCapture(e.pointerId);
     const move=ev=>{
-      floatPos.x=ox+ev.clientX-sx;
-      floatPos.y=oy+ev.clientY-sy;
-      clampFloat();
-      appEl.style.left=floatPos.x+"px";
-      appEl.style.top=floatPos.y+"px";
+      const dx=ev.clientX-sx, dy=ev.clientY-sy;
+      if(!moved){
+        if(Math.abs(dx)+Math.abs(dy)<5) return;
+        moved=true; appEl.classList.add("dragging");
+      }
+      pos.x=ox+dx; pos.y=oy+dy;
+      if(mini){ clampMini(); appEl.style.right="auto"; appEl.style.bottom="auto"; }
+      else clampFloat();
+      appEl.style.left=pos.x+"px";
+      appEl.style.top=pos.y+"px";
     };
     const up=()=>{
       appEl.classList.remove("dragging");
+      if(moved){ dragSuppress=true; setTimeout(()=>{dragSuppress=false;},0); }
       barEl.removeEventListener("pointermove",move);
       barEl.removeEventListener("pointerup",up);
       barEl.removeEventListener("pointercancel",up);
@@ -5343,11 +5389,45 @@ const QR = (function(){
     barEl.addEventListener("pointercancel",up);
   });
 
-  window.addEventListener("resize",()=>{
-    if(canFloat()) floatSize={w:appEl.offsetWidth,h:appEl.offsetHeight};
-    applyFloat();
+  /* resize from edges and corners */
+  appEl.querySelectorAll(".rz").forEach(h=>{
+    h.addEventListener("pointerdown",e=>{
+      if(!canResize() || e.button!==0) return;
+      e.preventDefault(); e.stopPropagation();
+      const dir=h.dataset.dir;
+      const sx=e.clientX, sy=e.clientY;
+      const sw=appEl.offsetWidth, sh=appEl.offsetHeight, ox=floatPos.x, oy=floatPos.y;
+      const maxW=window.innerWidth*0.98, maxH=window.innerHeight*0.98;
+      h.setPointerCapture(e.pointerId);
+      appEl.classList.add("dragging");
+      const move=ev=>{
+        const dx=ev.clientX-sx, dy=ev.clientY-sy;
+        let x=ox, y=oy, w=sw, hh=sh;
+        if(dir.includes("e")) w=Math.min(Math.max(sw+dx,MIN_W),maxW);
+        if(dir.includes("s")) hh=Math.min(Math.max(sh+dy,MIN_H),maxH);
+        if(dir.includes("w")){ w=Math.min(Math.max(sw-dx,MIN_W),maxW); x=ox+(sw-w); }
+        if(dir.includes("n")){ hh=Math.min(Math.max(sh-dy,MIN_H),maxH); y=oy+(sh-hh); }
+        floatPos.x=x; floatPos.y=y; floatSize={w:w,h:hh};
+        const st=appEl.style;
+        st.left=x+"px"; st.top=y+"px"; st.width=w+"px"; st.height=hh+"px";
+      };
+      const up=()=>{
+        appEl.classList.remove("dragging");
+        h.removeEventListener("pointermove",move);
+        h.removeEventListener("pointerup",up);
+        h.removeEventListener("pointercancel",up);
+      };
+      h.addEventListener("pointermove",move);
+      h.addEventListener("pointerup",up);
+      h.addEventListener("pointercancel",up);
+    });
   });
-  applyFloat();
+
+  window.addEventListener("resize",()=>{
+    if(canResize()) floatSize={w:appEl.offsetWidth,h:appEl.offsetHeight};
+    applyLayout();
+  });
+  applyLayout();
 
   function toggleMin(){
     setWinState(winState==="minimized" ? "normal" : "minimized");
@@ -5779,10 +5859,10 @@ const QR = (function(){
   $("btnMax").onclick=(e)=>{ e.stopPropagation(); toggleMax(); };
 
   barEl.addEventListener("click",()=>{
-    if(winState==="minimized") setWinState("normal");
+    if(winState==="minimized" && !dragSuppress) setWinState("normal");
   });
   appEl.addEventListener("click",()=>{
-    if(winState==="minimized") setWinState("normal");
+    if(winState==="minimized" && !dragSuppress) setWinState("normal");
   });
 
   $("form").onsubmit=e=>{
