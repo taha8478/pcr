@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
 <title>Private Chat Room</title>
 <script>try{if(window.parent!==window)document.documentElement.classList.add("embed")}catch(e){document.documentElement.classList.add("embed")}</script>
 <style>
@@ -282,7 +282,6 @@ html:not(.embed) body>*:not(#host):not(script):not(style){display:none!important
 
 .ghint{position:absolute;top:calc(100% + 26px);left:50%;transform:translateX(-50%);width:max-content;text-align:center;pointer-events:none;
   color:rgba(255,255,255,.55);font:500 13px/1.7 system-ui,sans-serif;letter-spacing:.04em;transition:opacity .4s}
-.ghint div+div{font-size:12px;opacity:.8;letter-spacing:0}
 #host.has-win .ghint{opacity:0}
 
 #bgclock{position:absolute;top:5vh;left:50%;transform:translateX(-50%);text-align:center;color:rgba(255,255,255,.2);pointer-events:none;user-select:none;z-index:1;white-space:nowrap}
@@ -360,6 +359,67 @@ html:not(.embed) body>*:not(#host):not(script):not(style){display:none!important
 #ctx .sw{width:22px;height:22px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s}
 #ctx .sw:hover{transform:scale(1.18)}
 #ctx .sw.cur{border-color:#fff}
+
+/* ---- glass panels for the chat page ---- */
+.app{background:
+  radial-gradient(700px 420px at 6% -6%,rgba(40,200,120,.17),transparent 62%),
+  radial-gradient(780px 500px at 102% 106%,rgba(70,110,255,.22),transparent 62%),
+  radial-gradient(520px 380px at 58% 46%,rgba(160,90,255,.07),transparent 70%),#06090e}
+.bar{background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.02));border-bottom:1px solid rgba(255,255,255,.08)}
+.work{position:relative;padding:10px;gap:10px;background:none}
+.side,.chat,.compose{
+  border:1px solid rgba(255,255,255,.11);border-radius:16px;
+  background:linear-gradient(150deg,rgba(255,255,255,.08),rgba(255,255,255,.02)),rgba(8,12,18,.42);
+  -webkit-backdrop-filter:blur(16px) saturate(160%);backdrop-filter:blur(16px) saturate(160%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10),0 12px 32px rgba(0,0,0,.28)}
+.left,.right{border:1px solid rgba(255,255,255,.11)}
+.main{gap:6px}
+.chat{background:linear-gradient(150deg,rgba(255,255,255,.05),rgba(255,255,255,.012)),rgba(6,9,14,.46)}
+.typingline{padding:0 14px;min-height:14px;line-height:14px}
+.compose{padding:10px 12px}
+.replybar{border-radius:10px;background:rgba(255,255,255,.05)}
+.status{background:rgba(255,255,255,.025);border-top:1px solid rgba(255,255,255,.07)}
+.bubble{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.10)}
+.modal{background:rgba(0,4,14,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.card{border-radius:18px;border:1px solid rgba(255,255,255,.14);
+  background:linear-gradient(150deg,rgba(255,255,255,.10),rgba(255,255,255,.03)),rgba(10,14,22,.78);
+  -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 24px 80px rgba(0,0,0,.6)}
+.field{border-radius:10px;background:rgba(0,0,0,.28);border-color:rgba(255,255,255,.14)}
+.send,.action,.attach{border-radius:10px}
+
+.sidebtn{display:none;margin-left:10px;width:30px;height:26px;padding:0;place-items:center;border-radius:8px;cursor:pointer;
+  border:1px solid rgba(255,255,255,.16);background:rgba(255,255,255,.07);color:#aab4c2;font-size:14px;line-height:1;transition:background .2s,color .2s,border-color .2s}
+.app.drawer .sidebtn{color:var(--g);border-color:#31563b;background:rgba(40,200,120,.12)}
+.drawer-dim{display:none}
+html.minw .sidebtn{display:none!important}
+
+@media(max-width:760px){
+  .work{padding:8px 8px 14px;gap:8px}
+  .sidebtn{display:grid}
+  .left{position:absolute;left:8px;top:8px;bottom:14px;width:min(80%,300px);flex:none;z-index:15;
+    transform:translateX(calc(-100% - 16px));opacity:0;pointer-events:none;
+    transition:transform .32s cubic-bezier(.22,.9,.28,1),opacity .22s;
+    background:linear-gradient(150deg,rgba(255,255,255,.13),rgba(255,255,255,.04)),rgba(8,12,20,.86);
+    -webkit-backdrop-filter:blur(24px) saturate(170%);backdrop-filter:blur(24px) saturate(170%);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.14),0 24px 60px rgba(0,0,0,.6)}
+  .app.drawer .left{transform:none;opacity:1;pointer-events:auto}
+  .drawer-dim{display:block;position:absolute;inset:0;z-index:14;background:rgba(0,4,14,.5);opacity:0;pointer-events:none;transition:opacity .3s}
+  .app.drawer .drawer-dim{opacity:1;pointer-events:auto}
+  .chat{padding:14px 12px 8px}
+  .compose{padding:8px 10px;margin-bottom:8px}
+  .typingline{padding:0 10px}
+}
+@media(prefers-reduced-motion:reduce){.left,.drawer-dim,.sidebtn{transition:none}}
+
+/* ---- host, phone layout: no bottom dock; switch chats from the Overview button ---- */
+@media(max-width:760px){
+  #dock{display:none!important}
+  .tb{top:56px;right:12px}
+  #help{top:106px;right:12px}
+}
+.tbb{position:relative}
+.tbb .bdg{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ff4d6a;color:#fff;font:700 11px system-ui;display:grid;place-items:center;box-shadow:0 4px 12px rgba(255,77,106,.5)}
 </style>
 </head>
 <body>
@@ -370,11 +430,13 @@ html:not(.embed) body>*:not(#host):not(script):not(style){display:none!important
       <button class="dot yellow" id="btnMin" title="Minimize"></button>
       <button class="dot green" id="btnMax" title="Maximize / Restore"></button>
     </div>
+    <button type="button" class="sidebtn" id="btnSide" aria-label="Show or hide the side panel" aria-expanded="false" title="Panel">☰</button>
     <div class="title">private chat room — serverless direct</div>
     <div class="actions"><span class="cdot wait" id="cdot" title="connection"></span><span class="clock" id="clock">--:--</span></div>
   </div>
 
   <div class="work" id="work">
+    <div class="drawer-dim" id="drawerDim"></div>
     <aside class="side left">
       <div class="st">ROOM</div><div class="room"># private</div>
       <div class="small" id="topicLine">no topic set</div>
@@ -513,7 +575,7 @@ html:not(.embed) body>*:not(#host):not(script):not(style){display:none!important
     <button class="glass" id="newChat" type="button" aria-label="Open a new chat window" title="New chat">
       <span class="ring"><span class="plus"></span></span>
     </button>
-    <div class="ghint"><div>Tap to start a new chat</div><div dir="rtl" lang="fa">برای شروع، یک چت جدید بساز</div></div>
+    <div class="ghint"><div>Tap to start a new chat</div></div>
   </div>
   <div id="bgclock"><div class="t" id="bgT"></div><div class="d" id="bgD"></div></div>
   <div id="snapPrev"></div>
@@ -5652,6 +5714,7 @@ const QR = (function(){
     if(!d || d.pcr!==1) return;
     if(d.t==="setstate"){
       winState=d.state;
+      document.documentElement.classList.toggle("minw",d.state==="minimized");
       if(d.state==="normal"){ input.focus(); unreadCount=0; postMeta(); }
     }else if(d.t==="mute"){
       S.muted=!!d.v;
@@ -5672,6 +5735,25 @@ const QR = (function(){
     }
   });
   $("form").addEventListener("submit",()=>{ pinned=true; },true);
+
+  /* side panel: slide-in drawer in the narrow (phone) layout */
+  function toggleDrawer(force){
+    const on=(typeof force==="boolean")?force:!appEl.classList.contains("drawer");
+    appEl.classList.toggle("drawer",on);
+    $("btnSide").setAttribute("aria-expanded",String(on));
+  }
+  $("btnSide").addEventListener("click",e=>{ e.stopPropagation(); toggleDrawer(); });
+  $("drawerDim").addEventListener("click",()=>toggleDrawer(false));
+  window.addEventListener("keydown",e=>{ if(e.code==="Escape") toggleDrawer(false); });
+
+  /* tell the host when the on-screen keyboard is probably open (so it can hide the bottom strip) */
+  let kbTimer=0;
+  const isTextField=el=>!!(el && el.matches && el.matches("input,textarea"));
+  window.addEventListener("focusin",e=>{ if(isTextField(e.target)){ clearTimeout(kbTimer); postHost({t:"kb",on:true}); } });
+  window.addEventListener("focusout",()=>{
+    clearTimeout(kbTimer);
+    kbTimer=setTimeout(()=>postHost({t:"kb",on:isTextField(document.activeElement)}),180);
+  });
   chat.addEventListener("scroll",()=>{
     pinned = chat.scrollHeight-chat.scrollTop-chat.clientHeight < 90;
     if(pinned) newCount=0;
@@ -6299,7 +6381,7 @@ const QR = (function(){
   var host=document.getElementById("host");
   var layer=document.getElementById("winLayer");
   var wins=[], zTop=10, seq=0;
-  var MIN_W=520, MIN_H=360, BAR=43, DOCK=86;
+  var MIN_W=520, MIN_H=360, BAR=43, DOCK=86, MDOCK=72;
   var PALETTE=["#4cc38a","#5aa9ff","#c58bff","#ff9f5a","#ff6f91","#e5d05a"];
 
   function vw(){return window.innerWidth;}
@@ -6333,13 +6415,18 @@ const QR = (function(){
     var fs=fullscreen(w);
     c.toggle("max",fs);
     c.toggle("mini",w.state==="minimized");
-    if(fs){ st.left="0"; st.top="0"; st.width=vw()+"px"; st.height=vh()+"px"; return; }
+    if(fs){
+      st.left="0"; st.top="0"; st.width=vw()+"px"; st.height=vh()+"px";
+      w.drag.style.left=(vw()<=760?122:74)+"px";   /* leave room for the panel button on narrow layouts */
+      return;
+    }
     if(w.state==="minimized"){
       var mw=Math.min(300,vw()-28);
       if(!w.mini) w.mini=miniSlot(w,mw);
       w.mini.x=clamp(w.mini.x,0,vw()-mw);
       w.mini.y=clamp(w.mini.y,0,vh()-BAR);
       st.left=w.mini.x+"px"; st.top=w.mini.y+"px"; st.width=mw+"px"; st.height=BAR+"px";
+      w.drag.style.left="74px";
       return;
     }
     var n=w.n;
@@ -6347,6 +6434,7 @@ const QR = (function(){
     n.x=clamp(n.x,100-n.w,vw()-100);
     n.y=clamp(n.y,0,vh()-BAR);
     st.left=n.x+"px"; st.top=n.y+"px"; st.width=n.w+"px"; st.height=n.h+"px";
+    w.drag.style.left=(n.w<=760?122:74)+"px";
   }
 
   function raise(w,focusFrame){
@@ -6666,6 +6754,10 @@ const QR = (function(){
       renderDock();
     }
     else if(d.t==="key"){ handleKey(String(d.code||"")); }
+    else if(d.t==="kb"){
+      var on=!!d.on && isMobile();
+      if(host.classList.contains("kb")!==on){ host.classList.toggle("kb",on); wins.forEach(layout); }
+    }
     else if(d.t==="req"){
       if(d.state==="normal"||d.state==="minimized"||d.state==="maximized") setState(w,d.state);
     }
@@ -6677,6 +6769,7 @@ const QR = (function(){
 
   window.addEventListener("resize",function(){
     if(ov.on) exitOverview();
+    renderDock();
     wins.forEach(function(w){
       if(w.snap==="l"||w.snap==="r"){ w.n.x=w.snap==="l"?0:vw()/2; w.n.y=0; w.n.w=vw()/2; w.n.h=vh(); }
       layout(w);
@@ -6885,6 +6978,11 @@ const QR = (function(){
       dockEl.appendChild(b);
     });
     document.title=(total?"("+total+") ":"")+baseTitle;
+    var ob=tbOv.querySelector(".bdg");
+    if(total){
+      if(!ob){ ob=document.createElement("span"); ob.className="bdg"; tbOv.appendChild(ob); }
+      ob.textContent=total>99?"99+":String(total);
+    }else if(ob){ ob.remove(); }
   }
 
   /* ---------- right-click menu ---------- */
