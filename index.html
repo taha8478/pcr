@@ -111,6 +111,9 @@ summary.st::marker{color:#3a4553}
 
 .modal{position:fixed;inset:0;background:#000b;display:grid;place-items:center;z-index:20;padding:16px}
 .modal.hide{display:none}
+.permgate{z-index:30}
+.permgate .card ul{margin:0 0 12px;padding-left:18px;font-size:11px;color:var(--m);line-height:1.7}
+html.embed .permgate{top:43px}
 .card{width:min(520px,100%);max-height:90dvh;overflow:auto;background:#0d1218;border:1px solid #28313b;border-radius:9px;padding:22px;box-shadow:0 20px 70px #000d}
 .card h2{font-size:15px;font-weight:500;margin:0 0 8px}
 .card p{font-size:11px;color:var(--m);line-height:1.6;margin:0 0 14px}
@@ -289,7 +292,11 @@ html:not(.embed) body>*:not(#host):not(script):not(style){display:none!important
 #bgclock .d{font:300 clamp(12px,1.9vmin,17px) system-ui,sans-serif;letter-spacing:.22em;text-transform:uppercase;margin-top:8px}
 @media(max-width:760px){#bgclock{top:12vh}}
 
-.tb{position:absolute;top:14px;right:14px;z-index:2000000000;display:flex;gap:8px}
+/* >>> BUTTON POSITION: change --tb-top to move the top buttons up or down (desktop value here, phone value in the @media block below) <<< */
+#host{--tb-top:14px;--tb-side:14px}
+.tb{position:absolute;top:var(--tb-top);right:var(--tb-side);z-index:2000000000;display:flex;gap:8px}
+#backBtn{position:absolute;top:var(--tb-top);left:var(--tb-side);z-index:2000000000;opacity:0;pointer-events:none;transition:opacity .25s,transform .2s,box-shadow .25s}
+#host.has-win #backBtn{opacity:1;pointer-events:auto}
 .tbb,.dk{font-family:system-ui,sans-serif}
 .tbb{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;cursor:pointer;color:#fff;padding:0;
   border:1px solid rgba(255,255,255,.22);background:linear-gradient(145deg,rgba(255,255,255,.18),rgba(255,255,255,.05));
@@ -300,7 +307,7 @@ html:not(.embed) body>*:not(#host):not(script):not(style){display:none!important
 .tbb.off{opacity:.65}
 .tbb:focus-visible,.dk:focus-visible{outline:2px solid #9cc0ff;outline-offset:2px}
 
-#help{position:absolute;top:64px;right:14px;z-index:2000000000;width:min(330px,calc(100vw - 28px));padding:14px 16px;border-radius:16px;color:#e8eefc;font:13px/1.9 system-ui,sans-serif;
+#help{position:absolute;top:calc(var(--tb-top) + 50px);right:var(--tb-side);z-index:2000000000;width:min(330px,calc(100vw - 28px));padding:14px 16px;border-radius:16px;color:#e8eefc;font:13px/1.9 system-ui,sans-serif;
   border:1px solid rgba(255,255,255,.22);background:linear-gradient(145deg,rgba(255,255,255,.16),rgba(255,255,255,.05)),rgba(8,14,32,.55);
   -webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);box-shadow:0 24px 60px rgba(0,0,0,.5);
   opacity:0;transform:translateY(-8px) scale(.97);pointer-events:none;transition:opacity .2s,transform .2s}
@@ -415,8 +422,8 @@ html.minw .sidebtn{display:none!important}
 /* ---- host, phone layout: no bottom dock; switch chats from the Overview button ---- */
 @media(max-width:760px){
   #dock{display:none!important}
-  .tb{top:56px;right:12px}
-  #help{top:106px;right:12px}
+  /* >>> PHONE: change --tb-top here (px from the top edge) <<< */
+  #host{--tb-top:47px;--tb-side:12px}
 }
 .tbb{position:relative}
 .tbb .bdg{position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#ff4d6a;color:#fff;font:700 11px system-ui;display:grid;place-items:center;box-shadow:0 4px 12px rgba(255,77,106,.5)}
@@ -486,10 +493,31 @@ html.minw .sidebtn{display:none!important}
   </div>
 </div>
 
+<div class="modal permgate hide" id="permGate">
+<div class="card">
+  <h2>welcome — allow access once</h2>
+  <p>So everything works from the first minute, your browser will ask for a few permissions. Nothing is sent to any server.</p>
+  <ul>
+    <li>microphone — voice messages, and it lets the browser show your real IPv6 address</li>
+    <li>camera — scanning QR codes</li>
+    <li>clipboard — pasting codes (where the browser supports it)</li>
+    <li>sound — message notifications</li>
+    <li>persistent storage — keeps your identity key from being cleared</li>
+  </ul>
+  <p class="hint" id="permGateStatus"></p>
+  <div class="row">
+    <button class="action" id="permAllow">allow &amp; continue</button>
+    <button class="action secondary" id="permSkip">skip for now</button>
+  </div>
+</div>
+</div>
+
 <div class="modal" id="modal">
 <div class="card">
   <h2>private chat room</h2>
-  <p>Direct WebRTC connection — no chat server. Signaling (codes) is exchanged manually between participants. On the same LAN (or with IPv6) it needs no servers at all. Between different networks it needs a STUN server both sides can reach, and for strict NATs (e.g. mobile networks) a TURN relay. Set them below; “intranet mode” removes the Google defaults for use during internet outages.</p>
+  <p>Direct WebRTC connection — no chat server. Signaling (codes) is exchanged manually between participants.</p>
+  <p><b>Requirement:</b> to connect two devices on <b>different networks</b>, the network each of you is on must have <b>IPv6 enabled</b> (a public IPv6 address). On the same Wi‑Fi / LAN nothing special is needed. Public STUN servers are used by default to help IPv4 links; “intranet mode” turns them off for internet outages.</p>
+  <p class="hint" id="ipv6Status">IPv6: checking…</p>
 
   <input class="field" id="nick" maxlength="32" placeholder="your nickname" autocomplete="off">
   <input class="field" id="bio" maxlength="120" placeholder="status / bio (optional)" autocomplete="off">
@@ -498,7 +526,8 @@ html.minw .sidebtn{display:none!important}
     <div class="st" style="padding-left:0">NETWORK (ICE)</div>
     <p class="hint">Servers, comma-separated. STUN: <code>stun:host:3478</code> &nbsp; TURN: <code>turn:host:3478|username|password</code>. Both sides should use servers they can reach. Without internet, Google STUN is unreachable — enable intranet mode and add your internal servers (without any server, only same-LAN / IPv6 connections can work).</p>
     <input class="field" id="customStun" placeholder="stun:my.server:3478, turn:my.server:3478|user|pass">
-    <label class="hint" style="display:block;margin:6px 0"><input type="checkbox" id="intranetMode"> intranet mode — don't use Google STUN, shorter wait</label>
+    <label class="hint" style="display:block;margin:6px 0"><input type="checkbox" id="intranetMode"> intranet mode — don't use public STUN/TURN servers, shorter wait</label>
+    <label class="hint" style="display:block;margin:6px 0"><input type="checkbox" id="relayMode"> use a public relay (TURN) when a direct link can't be made — a third-party server then sees both IP addresses but never the messages (they stay encrypted)</label>
     <label class="hint" style="display:block;margin:6px 0"><input type="checkbox" id="revealIp"> reveal real local IP (asks microphone permission once; browsers hide LAN IPs behind .local names otherwise)</label>
   </div>
 
@@ -582,6 +611,7 @@ html.minw .sidebtn{display:none!important}
   <div id="ovDim"></div>
   <div id="winLayer"></div>
   <div id="dock"></div>
+  <button class="tbb" id="backBtn" type="button" title="Back" aria-label="Back"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg></button>
   <div class="tb" id="toolbar">
     <button class="tbb" id="tbNew" type="button" title="New chat (Alt+N)" aria-label="New chat"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
     <button class="tbb" id="tbOv" type="button" title="Overview (Alt+O)" aria-label="Overview"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg></button>
@@ -626,10 +656,26 @@ html.minw .sidebtn{display:none!important}
   const DEFAULT_STUN = [
     "stun:stun.l.google.com:19302",
     "stun:stun1.l.google.com:19302",
-    "stun:stun2.l.google.com:19302",
-    "stun:stun3.l.google.com:19302",
-    "stun:stun4.l.google.com:19302"
+    "stun:stun.cloudflare.com:3478",
+    "stun:stun.cloudflare.com:53",
+    "stun:global.stun.twilio.com:3478",
+    "stun:stun.nextcloud.com:443",
+    "stun:stun.sipgate.net:3478",
+    "stun:stun.stunprotocol.org:3478",
+    "stun:openrelay.metered.ca:80"
   ];
+
+  // Public TURN relay used only as a fallback when no direct path exists (STUN cannot
+  // help behind symmetric NAT / mobile carriers). It forwards DTLS-encrypted traffic and
+  // sees IP addresses, never message content. Turn off in the room dialog; add your own
+  // TURN in the custom field for something you control.
+  const DEFAULT_TURN = [
+    "turn:openrelay.metered.ca:80",
+    "turn:openrelay.metered.ca:443",
+    "turn:openrelay.metered.ca:443?transport=tcp",
+    "turns:openrelay.metered.ca:443?transport=tcp"
+  ];
+  const DEFAULT_TURN_USER = "openrelayproject", DEFAULT_TURN_PASS = "openrelayproject";
 
   function loadCustomStun(){
     try{
@@ -652,6 +698,13 @@ html.minw .sidebtn{display:none!important}
   }
   function saveFlag(k,v){
     try{ localStorage.setItem(k, v?"1":"0"); }catch{}
+  }
+  function loadFlagOn(k){
+    try{ const v=localStorage.getItem(k); return v===null ? true : v==="1"; }catch{ return true; }
+  }
+  function isRelayMode(){
+    const el=$("relayMode");
+    return el ? !!el.checked : loadFlagOn("pcr_relay");
   }
   function isIntranetMode(){
     const el=$("intranetMode");
@@ -686,7 +739,10 @@ html.minw .sidebtn{display:none!important}
   function getIceConfig(){
     const custom = parseStunList($("customStun")?.value ?? loadCustomStun());
     const servers = [];
-    if(!isIntranetMode()) servers.push({ urls: DEFAULT_STUN });
+    if(!isIntranetMode()){
+      servers.push({ urls: DEFAULT_STUN });
+      if(isRelayMode()) servers.push({ urls: DEFAULT_TURN, username: DEFAULT_TURN_USER, credential: DEFAULT_TURN_PASS });
+    }
     for(const e of custom) servers.push(entryToIceServer(e));
     return { iceServers: servers, iceCandidatePoolSize: servers.length ? 2 : 0 };
   }
@@ -1123,6 +1179,49 @@ html.minw .sidebtn{display:none!important}
     if(mid) d.dataset.text=`[file] ${sanitizeFilename(name)}`;
     stickBottom();
     return d;
+  }
+
+  /* tests every configured STUN/TURN server from this device */
+  async function netTest(){
+    const cfg=getIceConfig();
+    const items=[];
+    for(const srv of cfg.iceServers){
+      const urls=Array.isArray(srv.urls)?srv.urls:[srv.urls];
+      for(const u of urls) items.push({url:u,srv:{urls:u,username:srv.username,credential:srv.credential}});
+    }
+    if(!items.length){
+      sysBlock(["no ICE servers are configured — intranet mode is on, so only same-network or IPv6 links can work"]);
+      return;
+    }
+    sysBlock([`testing ${items.length} server(s) from this device — up to 8 seconds…`]);
+    const probe=item=>new Promise(resolve=>{
+      const t0=performance.now();
+      let pc=null, done=false;
+      const isTurn=/^turns?:/i.test(item.url);
+      const finish=r=>{ if(done) return; done=true; try{ pc&&pc.close(); }catch{} resolve(r); };
+      try{
+        pc=new RTCPeerConnection({iceServers:[item.srv]});
+        pc.createDataChannel("t");
+        pc.onicecandidate=e=>{
+          if(!e.candidate){ finish({ok:false,why:"no answer"}); return; }
+          const c=e.candidate.candidate||"";
+          if(isTurn ? / typ relay/.test(c) : / typ srflx/.test(c)) finish({ok:true,ms:Math.round(performance.now()-t0)});
+        };
+        pc.createOffer().then(o=>pc.setLocalDescription(o)).catch(()=>finish({ok:false,why:"error"}));
+        setTimeout(()=>finish({ok:false,why:"timed out"}),8000);
+      }catch{ finish({ok:false,why:"invalid entry"}); }
+    });
+    const res=await Promise.all(items.map(probe));
+    const lines=items.map((it,i)=>`${res[i].ok?"✓":"✗"} ${it.url} — ${res[i].ok?res[i].ms+" ms":res[i].why}`);
+    const stunOk=items.some((it,i)=>res[i].ok && !/^turns?:/i.test(it.url));
+    const turnOk=items.some((it,i)=>res[i].ok && /^turns?:/i.test(it.url));
+    lines.push("──");
+    if(stunOk && turnOk) lines.push("result: STUN and TURN both answer — direct links and the relay fallback should work from this device");
+    else if(stunOk) lines.push("result: STUN answers, so most home networks can connect directly; mobile or strict networks may need a relay (TURN)"+(isRelayMode()?" — the relay did not answer here, add your own TURN in the room dialog":" — turn on the public relay in the room dialog"));
+    else if(turnOk) lines.push("result: only the TURN relay answers — connections will go through the relay");
+    else lines.push("result: nothing answered — this network may block these servers; try another network or add your own STUN/TURN in the room dialog");
+    lines.push("note: this only tests this device — the other person should run /nettest too");
+    sysBlock(lines);
   }
 
   async function permsReport(ask){
@@ -2790,6 +2889,7 @@ const QR = (function(){
         msg("system","Host↔Peer ICE connection failed. Check Bootstrap Diagnostics (left sidebar) to see which ICE candidate types were available and whether a candidate pair was selected — that tells you whether it's a NAT/firewall issue, a missing candidate type, or something else, instead of guessing.","err");
         sysBlock(buildBootstrapDiagnosticReport().split("\n"));
         setModalBootstrapStatus("ICE connection failed — no direct WebRTC path could be established. Open Bootstrap Diagnostics in the sidebar (or use \"copy diagnostics\") to see why.","err");
+        msg("system","tip: type /nettest to see which STUN/TURN servers this device can reach; the public relay option in the room dialog helps across mobile and strict networks","note");
       }else if(s==="closed"){
         setPath("closed");
       }
@@ -2842,15 +2942,46 @@ const QR = (function(){
     return pc;
   }
 
+  const ICE_CAND_RE=/^(?:a=)?candidate:\S+ \d+ \S+ \d+ (\S+) \d+ typ /;
+  function ipv6IsGlobal(a){
+    a=String(a||"").toLowerCase();
+    return a.includes(":") && /^[23]/.test(a);
+  }
+  function sdpHasGlobalIpv6(sdp){
+    for(const line of String(sdp||"").split(/\r?\n/)){
+      const m=ICE_CAND_RE.exec(line);
+      if(m && ipv6IsGlobal(m[1])) return true;
+    }
+    return false;
+  }
+  function sdpHasMdnsHost(sdp){
+    return /^a=candidate:\S+ \d+ \S+ \d+ \S+\.local \d+ typ /m.test(String(sdp||""));
+  }
+  // Tells the user, once per bootstrap attempt, whether this device offered a public IPv6 address.
+  function noteIpv6Status(pc){
+    try{
+      const sdp=(pc.localDescription&&pc.localDescription.sdp)||"";
+      if(sdpHasGlobalIpv6(sdp)){
+        msg("system","public IPv6 address found — a direct link across different networks is possible (the other side needs IPv6 too)","note");
+      }else if(sdpHasMdnsHost(sdp)){
+        msg("system","your addresses are hidden behind .local names, so IPv6 can't be used — allow microphone access (reveal real local IP) and try again","note");
+      }else{
+        msg("system","no public IPv6 address on this network — connecting to someone on a different network needs IPv6 on both sides. Same Wi‑Fi / LAN still works","note");
+      }
+    }catch{}
+  }
+
   async function waitForIce(pc,timeout=getGatherTimeout()){
     if(pc.iceGatheringState==="complete") return;
     await new Promise(resolve=>{
-      let done=false;
+      let done=false, grace=null, gotV6=false;
       const finish=(timedOut)=>{
         if(done)return;
         done=true;
         pc.removeEventListener("icegatheringstatechange",onState);
+        pc.removeEventListener("icecandidate",onCand);
         clearTimeout(timer);
+        clearTimeout(grace);
         if(timedOut){
           bootstrapLog("ice-gathering-timeout", {role:S.role, iceGatheringState:pc.iceGatheringState});
           msg("system","ICE gathering timed out; continuing with currently gathered candidates","note");
@@ -2860,8 +2991,21 @@ const QR = (function(){
       const onState=()=>{
         if(pc.iceGatheringState==="complete") finish(false);
       };
+      // a public IPv6 candidate is enough for a direct link: give STUN a short
+      // grace period (for IPv4 peers) and stop waiting instead of using the full timeout
+      const onCand=e=>{
+        if(gotV6 || !e.candidate) return;
+        const m=ICE_CAND_RE.exec(e.candidate.candidate||"");
+        if(m && ipv6IsGlobal(m[1])){
+          gotV6=true;
+          bootstrapLog("ipv6-candidate-found",{role:S.role});
+          clearTimeout(grace);
+          grace=setTimeout(()=>finish(false),1500);
+        }
+      };
       const timer=setTimeout(()=>finish(true),timeout);
       pc.addEventListener("icegatheringstatechange",onState);
+      pc.addEventListener("icecandidate",onCand);
     });
   }
 
@@ -3668,6 +3812,7 @@ const QR = (function(){
       await pc.setLocalDescription(answer);
       stage="ice-gathering";
       await waitForIce(pc);
+      noteIpv6Status(pc);
       bootstrapLog("stage",{role:"host",stage:"answer-ready",pid:peer.id,iceGatheringState:pc.iceGatheringState});
 
       // sign the answer with our host identity so the peer can confirm it
@@ -4350,6 +4495,7 @@ const QR = (function(){
       bootstrapLog("stage",{role:"peer",stage:"local-description-set"});
       stage="ice-gathering";
       await waitForIce(pc);
+      noteIpv6Status(pc);
       bootstrapLog("stage",{role:"peer",stage:"ice-gathering-done",iceGatheringState:pc.iceGatheringState});
 
       stage="build-proof";
@@ -5792,7 +5938,7 @@ const QR = (function(){
       "/ignore","/unignore","/away","/ping","/topic","/invite","/join","/part","/kick",
       "/ban","/unban","/op","/deop","/voice","/devoice","/status","/version","/time",
       "/motd","/echo","/reload","/cycle","/quit","/leave","/room",
-      "/export","/search","/mute","/unmute","/security","/network","/bootstrap","/perms"
+      "/export","/search","/mute","/unmute","/security","/network","/bootstrap","/perms","/nettest"
     ];
 
     if(!cmd.startsWith("/")) return false;
@@ -5810,7 +5956,7 @@ const QR = (function(){
           "/kick <user> [reason] · /ban <user> · /unban <user> · /op <user> · /deop <user>",
           "/voice <user> · /devoice <user> · /status · /security · /network · /bootstrap · /version · /time · /motd",
           "/echo <text> · /clear · /reload · /cycle · /quit · /part · /leave · /room",
-          "/export · /search <term> · /mute · /unmute · /perms [ask]",
+          "/export · /search <term> · /mute · /unmute · /perms [ask] · /nettest",
           "double-click a message to reply · 📎 to send a file · 🎙 to record a voice message · tap a bubble to react",
           "file/voice transfers show live progress and a cancel button — max 4MB, 4 at a time",
           "every signaling code (Host Code, Peer Offer, Host Answer) can be shown/scanned as a QR — no camera needed, copy/paste always works too"
@@ -5820,6 +5966,11 @@ const QR = (function(){
 
       case "/clear": {
         chat.innerHTML="";
+        return true;
+      }
+
+      case "/nettest": {
+        netTest();
         return true;
       }
 
@@ -6077,14 +6228,14 @@ const QR = (function(){
           "file and voice transfers: NOT yet end-to-end encrypted — only text (chat/me/dm) is, for now; delivered the same way, directly to each recipient",
           "bootstrapping a new Host<->Peer connection: fully manual/offline — Host Code, Peer Offer and Host Answer are copy-pasted by you, never sent through any server",
           "forming a direct Peer<->Peer mesh link: signaled live through the Host's already-open channels (SDP/ICE only — the Host coordinates this but never sees or needs to understand the resulting message content)",
-          "TURN: only if you configured one — a TURN relay forwards DTLS-encrypted traffic and cannot read it; without it, an unreachable peer is shown as unreachable",
+          "TURN: a public relay is used as a fallback when enabled in the room dialog, and you can add your own — a relay forwards DTLS-encrypted traffic and cannot read it; with no relay, an unreachable peer is shown as unreachable",
           S.role==="host"
             ? `this room's host identity: ${S.hostIdentityFp?formatFingerprint(S.hostIdentityFp):"unavailable — identity generation failed"}`
             : `pinned host identity for this session: ${S.pinnedHostFp?formatFingerprint(S.pinnedHostFp):"none — not connected via a verified Host Code"}`,
           `identity persistence: ${S.identityPersisted?"saved locally (survives reload)":"in-memory only for this session"}`,
           `host identity trust: TOFU (trust-on-first-use) keyed by the host's nickname — a mismatch on reconnect triggers a warning`,
           `end-to-end encryption: ${S.roomKey?"active for this session":"not yet established"}`,
-          `ICE servers: ${isIntranetMode()?"intranet mode (no Google STUN)":"Google STUN"}${stun?" + custom — "+stun:""}`,
+          `ICE servers: ${isIntranetMode()?"intranet mode (no public STUN/TURN)":("public STUN (Google, Cloudflare, Twilio and others)"+(isRelayMode()?" + public TURN relay":""))}${stun?" + custom — "+stun:""}`,
           "internet dependency: none required — direct LAN links can work with no STUN at all"
         ]);
         return true;
@@ -6339,6 +6490,8 @@ const QR = (function(){
       msg("system","entries must start with stun:, stuns:, turn: or turns: — invalid entries were ignored","err");
     }
   });
+  $("relayMode").checked = loadFlagOn("pcr_relay");
+  $("relayMode").addEventListener("change",()=>saveFlag("pcr_relay",$("relayMode").checked));
   $("intranetMode").checked = loadFlag("pcr_intranet");
   $("intranetMode").addEventListener("change",()=>saveFlag("pcr_intranet",$("intranetMode").checked));
   $("revealIp").checked = loadFlag("pcr_reveal_ip");
@@ -6349,6 +6502,93 @@ const QR = (function(){
   if($("revealIp").checked && navigator.permissions?.query){
     navigator.permissions.query({name:"microphone"}).then(r=>{ if(r.state==="granted") revealLocalIps(); }).catch(()=>{});
   }
+
+  /* ---- first-run permissions + IPv6 self-check ---- */
+  const PERM_FLAG="pcr_perms_asked";
+  async function checkIpv6(){
+    if(!window.RTCPeerConnection) return "unsupported";
+    return new Promise(resolve=>{
+      let pc=null, done=false, v6=false, mdns=false;
+      const fin=()=>{
+        if(done) return; done=true;
+        try{ pc&&pc.close(); }catch{}
+        resolve(v6?"yes":(mdns?"hidden":"no"));
+      };
+      try{
+        pc=new RTCPeerConnection({iceServers:[]});
+        pc.createDataChannel("t");
+        pc.onicecandidate=e=>{
+          if(!e.candidate){ fin(); return; }
+          const m=ICE_CAND_RE.exec(e.candidate.candidate||"");
+          if(!m) return;
+          if(ipv6IsGlobal(m[1])) v6=true; else if(/\.local$/i.test(m[1])) mdns=true;
+        };
+        pc.createOffer().then(o=>pc.setLocalDescription(o)).catch(fin);
+        setTimeout(fin,2500);
+      }catch{ resolve("unsupported"); }
+    });
+  }
+  async function refreshIpv6Status(){
+    const el=$("ipv6Status"); if(!el) return;
+    el.textContent="IPv6: checking…";
+    const r=await checkIpv6();
+    el.textContent=({
+      yes:"IPv6: public IPv6 address found on this network ✓ — you can connect across networks with a peer who also has IPv6",
+      no:"IPv6: no public IPv6 address on this network — you can still connect on the same Wi‑Fi / LAN; across networks you need IPv6 enabled (ask your ISP / router)",
+      hidden:"IPv6: can't tell yet — your browser hides addresses behind .local names. Allow microphone access (checkbox below) and reopen this dialog",
+      unsupported:"IPv6: this browser can't check (WebRTC unavailable)"
+    })[r]||"";
+  }
+  async function requestFirstRunPermissions(setStatus){
+    const rows=[];
+    const grab=async(c)=>{
+      try{ const st=await navigator.mediaDevices.getUserMedia(c); st.getTracks().forEach(t=>t.stop()); return "granted"; }
+      catch(e){ return (e&&e.name==="NotFoundError")?"no device":"denied"; }
+    };
+    let mic="unavailable";
+    if(navigator.mediaDevices && navigator.mediaDevices.getUserMedia){
+      setStatus("microphone…");   mic=await grab({audio:true});
+      setStatus("camera…");       const cam=await grab({video:true});
+      rows.push("microphone: "+mic, "camera: "+cam);
+    }else{
+      rows.push("microphone / camera: unavailable"+(window.isSecureContext?"":" (open the page over https or as a local file)"));
+    }
+    try{
+      if(navigator.clipboard && navigator.clipboard.readText && navigator.permissions){
+        const st=await navigator.permissions.query({name:"clipboard-read"});
+        if(st.state==="prompt"){ setStatus("clipboard…"); try{ await navigator.clipboard.readText(); }catch{} }
+      }
+    }catch{ /* browsers without a clipboard-read permission (Safari/Firefox) paste manually */ }
+    try{
+      audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)();
+      if(audioCtx.state==="suspended") await audioCtx.resume();
+    }catch{}
+    try{
+      if(navigator.storage && navigator.storage.persist) await navigator.storage.persist();
+    }catch{}
+    if(mic==="granted"){
+      $("revealIp").checked=true;
+      saveFlag("pcr_reveal_ip",true);
+    }
+    return rows;
+  }
+  (function initPermGate(){
+    const gate=$("permGate");
+    if(!gate) return;
+    if(loadFlag(PERM_FLAG)){ refreshIpv6Status(); return; }
+    gate.classList.remove("hide");
+    const st=t=>{ $("permGateStatus").textContent=t; };
+    const close=()=>{ saveFlag(PERM_FLAG,true); gate.classList.add("hide"); };
+    $("permAllow").addEventListener("click",async()=>{
+      $("permAllow").disabled=true; $("permSkip").disabled=true;
+      let rows=[];
+      try{ rows=await requestFirstRunPermissions(st); }catch{}
+      close();
+      if(rows.length) msg("system","permissions — "+rows.join(" · ")+" (type /perms to review)","note");
+      refreshIpv6Status();
+    });
+    $("permSkip").addEventListener("click",()=>{ close(); refreshIpv6Status(); });
+  })();
 
   const clockEl = $("clock");
   function tickClock(){
@@ -7087,6 +7327,23 @@ const QR = (function(){
     helpOpen=(typeof on==="boolean")?on:!helpOpen;
     helpEl.classList.toggle("on",helpOpen);
   }
+  /* Back: close a menu, leave overview, or minimize the active window and show the one behind it (or the home screen) */
+  function goBack(){
+    if(ctxOpen){ closeCtx(); return; }
+    if(helpOpen){ toggleHelp(false); return; }
+    if(ov.on){ exitOverview(); return; }
+    var a=activeWin();
+    if(!a) return;
+    if(a.state==="maximized" && !isMobile()){ setState(a,"normal"); return; }
+    if(a.state!=="minimized") setState(a,"minimized");
+    var next=null;
+    wins.forEach(function(o){
+      if(o===a || o.state==="minimized") return;
+      if(!next || (+o.el.style.zIndex)>(+next.el.style.zIndex)) next=o;
+    });
+    if(next) raise(next,true);
+  }
+  document.getElementById("backBtn").addEventListener("click",goBack);
   tbNew.addEventListener("click",function(){ newWindow(); });
   tbOv.addEventListener("click",toggleOverview);
   tbHelp.addEventListener("click",function(){ closeCtx(); toggleHelp(); });
