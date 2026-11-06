@@ -190,6 +190,10 @@ PCR/
 
 The application is contained in `PCR.html`; the interface, networking, room setup, messaging, and supporting features are included in that file.
 
+## Development
+
+PCR was developed with the assistance of AI tools through a vibe coding workflow. The project is maintained by taha8478.
+
 ## License
 
 PCR is released under the [MIT License](LICENSE.txt).
